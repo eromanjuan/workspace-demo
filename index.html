@@ -1027,7 +1027,17 @@ function bindBuilderDnD(){
 /* ==================================================================
    MODALS
    ================================================================== */
-function modal(html){const s=$('#scrim');s.innerHTML=html;s.classList.add('show');s.onclick=e=>{if(e.target===s)closeModal();};$$('[data-close]',s).forEach(b=>b.onclick=closeModal);}
+function modal(html){
+  const s=$('#scrim');s.innerHTML=html;s.classList.add('show');
+  $$('[data-close]',s).forEach(b=>b.onclick=closeModal);
+  s.onkeydown=e=>{
+    if(e.key==='Enter'&&!e.shiftKey){
+      const primary=$('.modal-foot .btn-primary',s);
+      if(primary){e.preventDefault();primary.click();}
+    }
+  };
+  const af=$('[autofocus]',s);if(af)af.focus();
+}
 function closeModal(){$('#scrim').classList.remove('show');$('#scrim').innerHTML='';}
 
 /* ---- create / edit workspace ---- */
