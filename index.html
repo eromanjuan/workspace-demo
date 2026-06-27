@@ -120,6 +120,9 @@ button{font-family:inherit}
 .ws-card{padding:20px;cursor:pointer;transition:.18s;position:relative;overflow:hidden}
 .ws-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--primary)}
 .ws-card .topbar-stripe{position:absolute;inset:0 0 auto 0;height:5px}
+.ws-card .ws-edit{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:18px;color:var(--text-muted);background:var(--surface);opacity:0;transition:.15s;z-index:2}
+.ws-card:hover .ws-edit{opacity:1}
+.ws-card .ws-edit:hover{background:var(--surface-2);color:var(--primary)}
 .ws-card .ws-emoji{width:50px;height:50px;border-radius:13px;display:grid;place-items:center;color:#fff;font-size:26px;margin:6px 0 14px}
 .ws-card h3{font-size:1.08rem;font-weight:800;margin-bottom:5px}
 .ws-card p{color:var(--text-muted);font-size:.86rem;min-height:38px}
@@ -353,7 +356,6 @@ textarea.input{resize:vertical;min-height:78px}
       <button class="menu-btn" id="menuBtn"><span class="material-symbols-outlined">menu</span></button>
       <nav class="crumbs" id="crumbs"></nav>
       <div class="topbar-spacer"></div>
-      <button class="btn btn-primary btn-sm" id="quickNew"><span class="material-symbols-outlined">add</span> New workspace</button>
     </header>
     <main class="content" id="content"></main>
   </div>
@@ -409,7 +411,7 @@ const DIRECTORY=[
 const memberById=id=>DIRECTORY.find(m=>m.id===id)||{id,name:'Unknown',color:'#6b7280',email:''};
 
 /* ---------- persistence ---------- */
-const KEY='qhq_workspaces_v1';
+const KEY='qhq_workspaces_v2';
 let DB=load();
 function load(){
   try{const r=JSON.parse(localStorage.getItem(KEY));if(r&&r.workspaces)return r;}catch(e){}
@@ -417,50 +419,9 @@ function load(){
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(DB));}
 function seed(){
-  const wsId=uid(),appId=uid();
-  const fName=uid(),fCompany=uid(),fEmail=uid(),fPhone=uid(),fValue=uid(),fStatus=uid(),fOwner=uid(),fNext=uid();
   return {
-    workspaces:[{
-      id:wsId,name:'Sales CRM',description:'Track roofing leads from first contact through signed contract.',
-      emoji:'real_estate_agent',color:'#2563eb',members:['u1','u4','u5'],createdAt:'2026-06-20',
-      activity:[
-        {id:uid(),ts:new Date(Date.now()-26*3600e3).toISOString(),icon:'bolt',color:'#7c3aed',text:'⚡ <b>Won deal → assign manager & notify</b> ran on <b>Westside Plaza</b>'},
-        {id:uid(),ts:new Date(Date.now()-25*3600e3).toISOString(),icon:'contacts',color:'#2563eb',text:'Added <b>Westside Plaza</b> to Leads'},
-        {id:uid(),ts:new Date(Date.now()-3*3600e3).toISOString(),icon:'contacts',color:'#2563eb',text:'Added <b>Tariq Mansour</b> to Leads'},
-        {id:uid(),ts:new Date(Date.now()-3*3600e3+2000).toISOString(),icon:'notifications',color:'#7c3aed',text:'🆕 A new lead entered the pipeline.'},
-      ],
-      apps:[{
-        id:appId,name:'Leads',description:'Inbound and outbound roofing leads.',type:'Contacts',
-        icon:'contacts',color:'#2563eb',
-        fields:[
-          {id:fName,type:'text',label:'Lead Name',required:true,config:{}},
-          {id:fCompany,type:'text',label:'Company',required:false,config:{}},
-          {id:fEmail,type:'email',label:'Email',required:false,config:{}},
-          {id:fPhone,type:'phone',label:'Phone',required:false,config:{}},
-          {id:fValue,type:'money',label:'Deal Value',required:false,config:{currency:'$'}},
-          {id:fStatus,type:'status',label:'Stage',required:true,config:{options:[
-            {id:uid(),label:'New',color:'#2563eb'},{id:uid(),label:'Contacted',color:'#d97706'},
-            {id:uid(),label:'Quoted',color:'#7c3aed'},{id:uid(),label:'Won',color:'#16a34a'},{id:uid(),label:'Lost',color:'#dc2626'}]}},
-          {id:fOwner,type:'user',label:'Owner',required:false,config:{}},
-          {id:fNext,type:'date',label:'Next Follow-up',required:false,config:{}},
-        ],
-        items:[
-          {id:uid(),values:{[fName]:'Greenfield HOA',[fCompany]:'Greenfield HOA',[fEmail]:'board@greenfield.org',[fPhone]:'(555) 240-1180',[fValue]:48000,[fStatus]:'__s3',[fOwner]:'u5',[fNext]:'2026-07-02'},createdAt:'2026-06-21'},
-          {id:uid(),values:{[fName]:'Tariq Mansour',[fCompany]:'Mansour Residence',[fEmail]:'tariq.m@gmail.com',[fPhone]:'(555) 884-0021',[fValue]:12500,[fStatus]:'__s1',[fOwner]:'u5',[fNext]:'2026-06-29'},createdAt:'2026-06-23'},
-          {id:uid(),values:{[fName]:'Westside Plaza',[fCompany]:'Westside Property Mgmt',[fEmail]:'ops@westsideplaza.com',[fPhone]:'(555) 661-7788',[fValue]:96000,[fStatus]:'__s4',[fOwner]:'u4',[fNext]:''},createdAt:'2026-06-24'},
-        ],
-        automations:[{
-          id:uid(),name:'Won deal → assign manager & notify',enabled:true,
-          trigger:{event:'field_is',fieldId:fStatus,value:'__s4'},
-          actions:[{type:'assign',fieldId:fOwner,value:'u4'},{type:'notify',message:'🎉 A deal was marked Won — Account Manager assigned.'}]
-        },{
-          id:uid(),name:'New lead notification',enabled:true,
-          trigger:{event:'created'},
-          actions:[{type:'notify',message:'🆕 A new lead entered the pipeline.'}]
-        }]
-      }]
-    }],
-    activeWorkspaceId:wsId,
+    workspaces:[],
+    activeWorkspaceId:null,
     ui:{collapsed:{},theme:'light'}
   };
 }
@@ -557,6 +518,7 @@ function viewWorkspaces(){
     const items=w.apps.reduce((s,a)=>s+a.items.length,0);
     return `<div class="card ws-card" data-open="${w.id}">
       <div class="topbar-stripe" style="background:${w.color}"></div>
+      <span class="ws-edit material-symbols-outlined" data-edit-ws="${w.id}" title="Edit workspace details">edit</span>
       <div class="ws-emoji material-symbols-outlined" style="background:${w.color}">${w.emoji}</div>
       <h3>${esc(w.name)}</h3>
       <p>${esc(w.description||'No description')}</p>
@@ -604,6 +566,7 @@ function viewWorkspace(){
       <div class="page-sub">${esc(w.description||'')}</div>
     </div>
     <div class="spacer"></div>
+    <button class="btn" data-edit-ws><span class="material-symbols-outlined">edit</span> Edit</button>
     <button class="btn" data-manage-members><span class="material-symbols-outlined">group</span> Members</button>
     <button class="btn btn-primary" data-new-app><span class="material-symbols-outlined">add</span> Add App</button>
   </div>
@@ -1025,6 +988,7 @@ function bindContent(){
   $$('[data-open-app]').forEach(el=>el.onclick=()=>openApp(el.dataset.openApp));
   $$('[data-new-app]').forEach(el=>el.onclick=()=>openAppModal());
   $$('[data-manage-members]').forEach(el=>el.onclick=()=>openMembersModal());
+  $$('[data-edit-ws]').forEach(el=>el.onclick=e=>{e.stopPropagation();openWsModal(el.dataset.editWs||VIEW.wsId);});
   $$('[data-del-ws]').forEach(el=>el.onclick=()=>delWorkspace());
   $$('[data-go-ws]').forEach(el=>el.onclick=()=>{VIEW={page:'workspaces'};render();});
   // app tabs
@@ -1066,40 +1030,50 @@ function bindBuilderDnD(){
 function modal(html){const s=$('#scrim');s.innerHTML=html;s.classList.add('show');s.onclick=e=>{if(e.target===s)closeModal();};$$('[data-close]',s).forEach(b=>b.onclick=closeModal);}
 function closeModal(){$('#scrim').classList.remove('show');$('#scrim').innerHTML='';}
 
-/* ---- create / nothing-special edit workspace ---- */
+/* ---- create / edit workspace ---- */
 let wsDraft=null;
-function openWsModal(){
-  wsDraft={emoji:WS_EMOJIS[0],color:PALETTE[1],members:[]};
+function openWsModal(editId){
+  const editing=editId?DB.workspaces.find(w=>w.id===editId):null;
+  wsDraft=editing
+    ?{emoji:editing.emoji,color:editing.color,members:[...editing.members]}
+    :{emoji:WS_EMOJIS[0],color:PALETTE[1],members:[]};
+  const memText=()=>wsDraft.members.length?`${wsDraft.members.length} member${wsDraft.members.length!==1?'s':''} ${editing?'in this workspace':'will be invited'}.`:"No members selected — you'll be the owner.";
   modal(`<div class="modal wide">
-    <div class="modal-head"><div class="mh-ic" style="background:${wsDraft.color}"><span class="material-symbols-outlined">workspaces</span></div>
-      <h3>Create workspace</h3><button class="close" data-close><span class="material-symbols-outlined">close</span></button></div>
+    <div class="modal-head"><div class="mh-ic" style="background:${wsDraft.color}"><span class="material-symbols-outlined">${editing?editing.emoji:'workspaces'}</span></div>
+      <h3>${editing?'Edit workspace':'Create workspace'}</h3><button class="close" data-close><span class="material-symbols-outlined">close</span></button></div>
     <div class="modal-body">
-      <div class="field"><label>Workspace name</label><input class="input" id="wsName" placeholder="e.g. Marketing, Field Operations, Q3 Roof Replacements" autofocus></div>
-      <div class="field"><label>Description <span class="opt">(optional)</span></label><textarea class="input" id="wsDesc" placeholder="What is this workspace for?"></textarea></div>
+      <div class="field"><label>Workspace name</label><input class="input" id="wsName" placeholder="e.g. Marketing, Field Operations, Q3 Roof Replacements" value="${editing?esc(editing.name):''}" autofocus></div>
+      <div class="field"><label>Description <span class="opt">(optional)</span></label><textarea class="input" id="wsDesc" placeholder="What is this workspace for?">${editing?esc(editing.description||''):''}</textarea></div>
       <div class="row2">
-        <div class="field"><label>Icon</label><div class="emoji-pick" id="wsEmoji">${WS_EMOJIS.map((e,i)=>`<button class="emoji-opt ${i===0?'sel':''}" data-e="${e}"><span class="material-symbols-outlined">${e}</span></button>`).join('')}</div></div>
-        <div class="field"><label>Color</label><div class="swatches" id="wsColor">${PALETTE.map((c,i)=>`<div class="swatch ${i===1?'sel':''}" data-c="${c}" style="background:${c}"></div>`).join('')}</div></div>
+        <div class="field"><label>Icon</label><div class="emoji-pick" id="wsEmoji">${WS_EMOJIS.map(e=>`<button class="emoji-opt ${e===wsDraft.emoji?'sel':''}" data-e="${e}"><span class="material-symbols-outlined">${e}</span></button>`).join('')}</div></div>
+        <div class="field"><label>Color</label><div class="swatches" id="wsColor">${PALETTE.map(c=>`<div class="swatch ${c===wsDraft.color?'sel':''}" data-c="${c}" style="background:${c}"></div>`).join('')}</div></div>
       </div>
-      <div class="field"><label>Invite members <span class="opt">(select who collaborates here)</span></label>
-        <div class="member-pick" id="wsMembers">${DIRECTORY.map(m=>`<div class="member-opt" data-m="${m.id}">
+      <div class="field"><label>${editing?'Members':'Invite members'} <span class="opt">(select who collaborates here)</span></label>
+        <div class="member-pick" id="wsMembers">${DIRECTORY.map(m=>`<div class="member-opt ${wsDraft.members.includes(m.id)?'on':''}" data-m="${m.id}">
           <div class="avatar" style="background:${m.color}">${initials(m.name)}</div>
           <div class="mo-info"><b>${esc(m.name)}</b><span>${esc(m.role)} · ${esc(m.email)}</span></div>
           <div class="ck"><span class="material-symbols-outlined">check</span></div></div>`).join('')}</div>
-        <div class="hint" id="wsMemCount">No members selected — you'll be the owner.</div>
+        <div class="hint" id="wsMemCount">${memText()}</div>
       </div>
     </div>
     <div class="modal-foot"><button class="btn" data-close>Cancel</button>
-      <button class="btn btn-primary" id="wsCreate"><span class="material-symbols-outlined">add</span> Create workspace</button></div>
+      <button class="btn btn-primary" id="wsCreate"><span class="material-symbols-outlined">${editing?'check':'add'}</span> ${editing?'Save changes':'Create workspace'}</button></div>
   </div>`);
   $$('#wsEmoji .emoji-opt').forEach(b=>b.onclick=()=>{$$('#wsEmoji .emoji-opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');wsDraft.emoji=b.dataset.e;$('.mh-ic .material-symbols-outlined').textContent=b.dataset.e;});
   $$('#wsColor .swatch').forEach(b=>b.onclick=()=>{$$('#wsColor .swatch').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');wsDraft.color=b.dataset.c;$('.mh-ic').style.background=b.dataset.c;});
   $$('#wsMembers .member-opt').forEach(b=>b.onclick=()=>{
     b.classList.toggle('on');const id=b.dataset.m;
     if(wsDraft.members.includes(id))wsDraft.members=wsDraft.members.filter(x=>x!==id);else wsDraft.members.push(id);
-    $('#wsMemCount').textContent=wsDraft.members.length?`${wsDraft.members.length} member${wsDraft.members.length!==1?'s':''} will be invited.`:"No members selected — you'll be the owner.";
+    $('#wsMemCount').textContent=memText();
   });
   $('#wsCreate').onclick=()=>{
     const name=$('#wsName').value.trim();if(!name)return toast('Give your workspace a name','error');
+    if(editing){
+      editing.name=name;editing.description=$('#wsDesc').value.trim();editing.emoji=wsDraft.emoji;editing.color=wsDraft.color;editing.members=[...wsDraft.members];
+      logActivity(editing,{icon:editing.emoji,color:editing.color,text:`Workspace <b>${esc(name)}</b> updated`});
+      save();closeModal();renderNav();render();toast(`Workspace "${name}" updated`);
+      return;
+    }
     const ws={id:uid(),name,description:$('#wsDesc').value.trim(),emoji:wsDraft.emoji,color:wsDraft.color,members:[...wsDraft.members],apps:[],activity:[],createdAt:new Date().toISOString().slice(0,10)};
     logActivity(ws,{icon:ws.emoji,color:ws.color,text:`Workspace <b>${esc(name)}</b> created`});
     DB.workspaces.push(ws);save();closeModal();openWorkspace(ws.id);toast(`Workspace "${name}" created`);
@@ -1197,7 +1171,7 @@ function openFieldModal(fieldId,newType){
     <div class="modal-head"><div class="mh-ic" style="background:${ft.color}"><span class="material-symbols-outlined">${ft.icon}</span></div>
       <h3>${existing?'Configure':'Add'} ${ft.label} field</h3><button class="close" data-close><span class="material-symbols-outlined">close</span></button></div>
     <div class="modal-body">
-      <div class="field"><label>Field label</label><input class="input" id="fLabel" value="${esc(fieldDraft.label)}" placeholder="${esc(ft.label)} field name" autofocus></div>
+      <div class="field"><label>Field label <span class="opt">(optional — you can rename it later)</span></label><input class="input" id="fLabel" value="${esc(fieldDraft.label)}" placeholder="${esc(ft.label)} field name" autofocus></div>
       <div id="fConfig">${fieldConfigUI(fieldDraft,a)}</div>
       <div class="check-row"><label class="switch"><input type="checkbox" id="fReq" ${fieldDraft.required?'checked':''}><span class="slider"></span></label>
         <div><b style="font-size:.88rem">Required field</b><div class="hint" style="margin:0">Items can't be saved without it.</div></div></div>
@@ -1207,7 +1181,7 @@ function openFieldModal(fieldId,newType){
   </div>`);
   bindFieldConfig(a);
   $('#fSave').onclick=()=>{
-    fieldDraft.label=$('#fLabel').value.trim();if(!fieldDraft.label)return toast('Give the field a label','error');
+    fieldDraft.label=$('#fLabel').value.trim()||`Untitled ${ft.label} field`;
     fieldDraft.required=$('#fReq').checked;
     collectFieldConfig();
     if(existing){const i=a.fields.findIndex(f=>f.id===fieldId);a.fields[i]=fieldDraft;}
@@ -1372,7 +1346,6 @@ function confirmModal(title,msg,onYes){
    wiring
    ================================================================== */
 $('#navAddWs').onclick=e=>{e.stopPropagation();openWsModal();};
-$('#quickNew').onclick=()=>openWsModal();
 $('#themeToggle').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
 $('#menuBtn').onclick=()=>{$('#sidebar').classList.add('open');$('#scrimM').classList.add('show');};
 $('#scrimM').onclick=closeSidebar;
